@@ -34,6 +34,7 @@ public class JPAUnitTest {
 
     @Test
     public void should_find_no_books_if_repository_is_empty(){
+        bookRepository.deleteAll();
         Iterable books = bookRepository.findAll();
         assertThat(books).isEmpty();
     }
@@ -54,6 +55,8 @@ public class JPAUnitTest {
 
     @Test
     public void should_find_all_books(){
+        bookRepository.deleteAll();
+
         Book book1 = new Book("isbn#1", "Book1", "Alex", "Vuong", "description1", true);
         entityManager.persist(book1);
 
@@ -129,6 +132,8 @@ public class JPAUnitTest {
 
     @Test
     public void should_find_published_books(){
+        bookRepository.deleteAll();
+
         Book book1 = new Book("isbn#1", "Book1", "Alex", "Vuong", "description1", true);
         entityManager.persist(book1);
 
@@ -191,6 +196,8 @@ public class JPAUnitTest {
 
     @Test
     public void should_delete_books_by_id(){
+        bookRepository.deleteAll();
+
         Book book1 = new Book("isbn#1", "Dividing", "Alex", "Vuong", "description1", true);
         entityManager.persist(book1);
 

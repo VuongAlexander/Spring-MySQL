@@ -4,13 +4,16 @@ package com.example.demo.controller;
 import com.example.demo.model.Book;
 import com.example.demo.repository.BookRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 //RestController that has request mapping methods for RESTful requests
 
@@ -21,20 +24,58 @@ public class BookController {
     @Autowired //used to inject BookRepository bean to local variable
     BookRepository bookRepository;
 
-    @GetMapping("/books")
-    public ResponseEntity<List<Book>> getAllBooks(@RequestParam(required = false) String title){
-        List<Book> books = new ArrayList<Book>();
-
-        if (title == null){
-            bookRepository.findAll().forEach(books::add);
-        }else{
-            bookRepository.findByTitleContaining(title).forEach(books::add);
+    private Sort.Direction getSortDirection(String direction){
+        if (direction.equals("asc")){
+            return Sort.Direction.ASC;
         }
+        else if (direction.equals("desc")){
+            return Sort.Direction.DESC;
+        }
+        return Sort.Direction.ASC;
+    }
+
+    @GetMapping("/books")
+    public ResponseEntity<Map<String, Object>> getAllBooks(@RequestParam(required = false) String title,
+                                                           @RequestParam(defaultValue = "0") int page,
+                                                           @RequestParam(defaultValue = "3") int size,
+                                                           @RequestParam(defaultValue = "id, desc") String[] sort){
+
+        List<Sort.Order> orders = new ArrayList<Order>();
+
+        if(sort[0].contains(",")){
+            //will sort more than 2 fields
+            //sortOrder="field, direction")
+            for (String sortOrder: sort){
+                String[] _sort = sortOrder.split(",");
+                orders.add(new Sort.Order(getSortDirection(_sort[1]), _sort[0]));
+            }
+        }else{
+            orders.add(new Order(getSortDirection(sort[1]), sort[0]));
+        }
+
+        List<Book> books = new ArrayList<Book>();
+        Pageable pagingSort = PageRequest.of(page, size, Sort.by(orders));
+
+        Page<Book> pageBooks;
+        if (title == null){
+            pageBooks = bookRepository.findAll(pagingSort);//.forEach(books::add);
+        }else{
+            pageBooks = bookRepository.findByTitleContaining(title, pagingSort);//.forEach(books::add);
+        }
+
+        books = pageBooks.getContent();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("books", books);
+        response.put("currentPage", pageBooks.getNumber());
+        response.put("totalItems", pageBooks.getTotalElements());
+        response.put("totalPages", pageBooks.getTotalPages());
+
 
         if (books.isEmpty()){
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
-        return new ResponseEntity<>(books, HttpStatus.OK);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @GetMapping("books/{id}")
@@ -89,48 +130,115 @@ public class BookController {
     }
 
     @GetMapping("books/isbn={isbn}")
-    public ResponseEntity<List<Book>> findByIsbn(@PathVariable("isbn") String isbn){
-        List<Book> books = bookRepository.findByIsbn(isbn);
+    public ResponseEntity<Map<String, Object>> findByIsbn(@PathVariable("isbn") String isbn,
+                                                 @RequestParam(defaultValue = "0") int page,
+                                                 @RequestParam(defaultValue = "3") int size){
+        List<Book> books = new ArrayList<Book>();
+        Pageable paging = PageRequest.of(page, size);
+
+        Page<Book> pageBooks = bookRepository.findByIsbn(isbn, paging);
+        books = pageBooks.getContent();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("books", books);
+        response.put("currentPage", pageBooks.getNumber());
+        response.put("totalItems", pageBooks.getTotalElements());
+        response.put("totalPages", pageBooks.getTotalPages());
+
         if (books.isEmpty()){
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
-        return new ResponseEntity<>(books, HttpStatus.OK);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @GetMapping("books/firstname={firstname}")
-    public ResponseEntity<List<Book>> findByFirstName(@PathVariable("firstname") String firstName){
-        List<Book> books = bookRepository.findByFirstName(firstName);
+    public ResponseEntity<Map<String, Object>> findByFirstName(@PathVariable("firstname") String firstName,
+                                                      @RequestParam(defaultValue = "0") int page,
+                                                      @RequestParam(defaultValue = "3") int size){
+
+        List<Book> books = new ArrayList<Book>();
+        Pageable paging = PageRequest.of(page, size);
+
+        Page<Book> pageBooks = bookRepository.findByFirstName(firstName, paging);
+        books = pageBooks.getContent();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("books", books);
+        response.put("currentPage", pageBooks.getNumber());
+        response.put("totalItems", pageBooks.getTotalElements());
+        response.put("totalPages", pageBooks.getTotalPages());
+
         if (books.isEmpty()){
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
-        return new ResponseEntity<>(books, HttpStatus.OK);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @GetMapping("books/lastname={lastname}")
-    public ResponseEntity<List<Book>> findByLastName(@PathVariable("lastname") String lastName){
-        List<Book> books = bookRepository.findByLastName(lastName);
+    public ResponseEntity<Map<String, Object>> findByLastName(@PathVariable("lastname") String lastName,
+                                                     @RequestParam(defaultValue = "0") int page,
+                                                     @RequestParam(defaultValue = "3") int size){
+        List<Book> books = new ArrayList<Book>();
+        Pageable paging = PageRequest.of(page, size);
+
+        Page<Book> pageBooks = bookRepository.findByLastName(lastName, paging);
+        books = pageBooks.getContent();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("books", books);
+        response.put("currentPage", pageBooks.getNumber());
+        response.put("totalItems", pageBooks.getTotalElements());
+        response.put("totalPages", pageBooks.getTotalPages());
+
         if (books.isEmpty()){
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
-        return new ResponseEntity<>(books, HttpStatus.OK);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
 
     @GetMapping("books/published")
-    public ResponseEntity<List<Book>> findByPublished(){
-        List<Book> books = bookRepository.findByPublished(true);
+    public ResponseEntity<Map<String, Object>> findByPublished(@RequestParam(defaultValue = "0") int page,
+                                                      @RequestParam(defaultValue = "3") int size){
+
+        List<Book> books = new ArrayList<Book>();
+        Pageable paging = PageRequest.of(page, size);
+
+        Page<Book> pageBooks = bookRepository.findByPublished(true, paging);
+        books = pageBooks.getContent();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("books", books);
+        response.put("currentPage", pageBooks.getNumber());
+        response.put("totalItems", pageBooks.getTotalElements());
+        response.put("totalPages", pageBooks.getTotalPages());
+
         if (books.isEmpty()){
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
-        return new ResponseEntity<>(books, HttpStatus.OK);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @GetMapping("books?title={keyword}")
-    public ResponseEntity<List<Book>> findByTitleContaining(@RequestParam(required = true) String keyword){
-        List<Book> books = bookRepository.findByTitleContaining(keyword);
+    public ResponseEntity<Map<String, Object>> findByTitleContaining(@RequestParam(required = true) String keyword,
+                                                            @RequestParam(defaultValue = "0") int page,
+                                                            @RequestParam(defaultValue = "3") int size){
+        List<Book> books = new ArrayList<Book>();
+        Pageable paging = PageRequest.of(page, size);
+
+        Page<Book> pageBooks = bookRepository.findByTitleContaining(keyword, paging);
+        books = pageBooks.getContent();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("books", books);
+        response.put("currentPage", pageBooks.getNumber());
+        response.put("totalItems", pageBooks.getTotalElements());
+        response.put("totalPages", pageBooks.getTotalPages());
+
+
         if (books.isEmpty()){
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
-        return new ResponseEntity<>(books, HttpStatus.OK);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }
